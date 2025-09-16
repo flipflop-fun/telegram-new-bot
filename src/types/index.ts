@@ -53,7 +53,7 @@ export interface DatabaseConfig {
 
 export interface TelegramConfig {
   botToken: string;
-  chatId: string;
+  chatIds: string[];
 }
 
 export interface AppConfig {

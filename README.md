@@ -77,7 +77,7 @@ DB_PASSWORD=your_password
 
 # Telegram Bot配置
 TELEGRAM_BOT_TOKEN=your_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
+TELEGRAM_CHAT_IDS=your_chat_id_here
 ```
 
 ### 4. 获取Telegram Bot Token
@@ -89,10 +89,26 @@ TELEGRAM_CHAT_ID=your_chat_id_here
 
 ### 5. 获取Chat ID
 
+#### 单个群组配置
 1. 将机器人添加到目标群组或频道
 2. 发送一条消息给机器人
 3. 访问 `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
 4. 从响应中找到 `chat.id` 并填入 `.env` 文件
+
+#### 多个群组配置
+如果需要向多个群组发送消息，可以配置多个Chat ID：
+
+1. 对每个目标群组重复上述步骤，获取各自的Chat ID
+2. 在 `.env` 文件中使用逗号分隔多个Chat ID：
+   ```env
+   TELEGRAM_CHAT_IDS=-1001234567890,-1009876543210,-1001122334455
+   ```
+3. 机器人将自动向所有配置的群组发送消息
+
+**注意事项：**
+- Chat ID通常是负数（群组）或正数（私聊）
+- 确保机器人在所有目标群组中都有发送消息的权限
+- 如果某个群组发送失败，不会影响其他群组的消息发送
 
 ## 运行方式
 
@@ -165,7 +181,7 @@ docker-compose down
 | `DB_USER` | 数据库用户 | - |
 | `DB_PASSWORD` | 数据库密码 | - |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token | - |
-| `TELEGRAM_CHAT_ID` | 目标聊天ID | - |
+| `TELEGRAM_CHAT_IDS` | 目标聊天ID(多个用逗号分隔) | - |
 | `POLL_INTERVAL` | 轮询间隔(毫秒) | 30000 |
 | `LOG_LEVEL` | 日志级别 | info |
 | `NODE_ENV` | 运行环境 | development |

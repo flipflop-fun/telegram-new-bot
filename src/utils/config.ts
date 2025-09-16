@@ -14,7 +14,9 @@ export const config: AppConfig = {
   },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    chatId: process.env.TELEGRAM_CHAT_ID || ''
+    chatIds: process.env.TELEGRAM_CHAT_IDS 
+      ? process.env.TELEGRAM_CHAT_IDS.split(',').map(id => id.trim())
+      : []
   },
   pollInterval: parseInt(process.env.POLL_INTERVAL || '30000') // 30 seconds default
 };
@@ -27,12 +29,17 @@ export function validateConfig(): void {
     'DB_PASSWORD',
     'DB_NAME',
     'TELEGRAM_BOT_TOKEN',
-    'TELEGRAM_CHAT_ID'
+    'TELEGRAM_CHAT_IDS'
   ];
 
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  // Additional validation for chat IDs
+  if (config.telegram.chatIds.length === 0) {
+    throw new Error('At least one chat ID must be provided in TELEGRAM_CHAT_IDS');
   }
 }

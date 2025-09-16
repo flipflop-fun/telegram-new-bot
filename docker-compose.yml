@@ -1,12 +1,10 @@
-version: '3.8'
+version: '3.9'
 
 services:
   telegram-news-bot:
     build: .
     container_name: telegram-news-bot
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
     env_file:
       - .env
     volumes:
@@ -19,25 +17,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Optional: Local PostgreSQL for testing
-  postgres:
-    image: postgres:15-alpine
-    container_name: postgres-local
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME:-testdb}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - bot-network
-
 networks:
   bot-network:
-    driver: bridge
-
-volumes:
-  postgres_data:
+    external: true
+    name: data-sink_default

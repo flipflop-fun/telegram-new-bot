@@ -4,23 +4,33 @@ import { logger } from '../utils/logger';
 
 export class TelegramService {
   private bot: TelegramBot;
-  private chatId: string;
+  private chatIds: string[];
 
   constructor(config: TelegramConfig) {
     this.bot = new TelegramBot(config.botToken, { polling: false });
-    this.chatId = config.chatId;
+    this.chatIds = config.chatIds;
   }
 
   async sendNewTokenNotification(entity: InitializeTokenEventEntity): Promise<void> {
+    const message = this.formatTokenMessage(entity);
+    const sendPromises = this.chatIds.map(async (chatId) => {
+      try {
+        await this.bot.sendMessage(chatId, message, { 
+          parse_mode: 'HTML',
+          disable_web_page_preview: true 
+        });
+        logger.info(`Sent notification to chat ${chatId} for token: ${entity.token_name || entity.token_symbol || entity.mint}`);
+      } catch (error) {
+        logger.error(`Failed to send message to chat ${chatId}:`, error);
+        // Don't throw here, continue sending to other chats
+      }
+    });
+
     try {
-      const message = this.formatTokenMessage(entity);
-      await this.bot.sendMessage(this.chatId, message, { 
-        parse_mode: 'HTML',
-        disable_web_page_preview: true 
-      });
-      logger.info(`Sent notification for token: ${entity.token_name || entity.token_symbol || entity.mint}`);
+      await Promise.allSettled(sendPromises);
+      logger.info(`Notification sent to ${this.chatIds.length} chat(s) for token: ${entity.token_name || entity.token_symbol || entity.mint}`);
     } catch (error) {
-      logger.error('Failed to send Telegram message:', error);
+      logger.error('Unexpected error in sendNewTokenNotification:', error);
       throw error;
     }
   }
@@ -98,11 +108,22 @@ ${entity.token_uri ? `🔗 Metadata: ${entity.token_uri}` : ''}
   }
 
   async sendTestMessage(): Promise<void> {
+    const testMessage = '🤖 Telegram News Bot is online and ready!';
+    const sendPromises = this.chatIds.map(async (chatId) => {
+      try {
+        await this.bot.sendMessage(chatId, testMessage);
+        logger.info(`Test message sent successfully to chat ${chatId}`);
+      } catch (error) {
+        logger.error(`Failed to send test message to chat ${chatId}:`, error);
+        // Don't throw here, continue sending to other chats
+      }
+    });
+
     try {
-      await this.bot.sendMessage(this.chatId, '🤖 Telegram News Bot is online and ready!');
-      logger.info('Test message sent successfully');
+      await Promise.allSettled(sendPromises);
+      logger.info(`Test message sent to ${this.chatIds.length} chat(s)`);
     } catch (error) {
-      logger.error('Failed to send test message:', error);
+      logger.error('Unexpected error in sendTestMessage:', error);
       throw error;
     }
   }
