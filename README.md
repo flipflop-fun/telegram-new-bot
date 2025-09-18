@@ -1,265 +1,275 @@
 # Telegram News Bot
 
-一个用于监控数据库中新代币初始化事件并通过Telegram发送通知的自动化机器人。
+An automated bot for monitoring new token initialization events in the database and sending notifications via Telegram.
 
-## 功能特性
+## Features
 
-- 🔍 **实时监控** - 持续监控数据库中的新代币初始化事件
-- 📱 **Telegram集成** - 自动发送格式化的通知消息到指定频道
-- 🐳 **Docker支持** - 完整的容器化部署方案
-- 🔧 **配置灵活** - 通过环境变量轻松配置
-- 📊 **完整日志** - 详细的日志记录和错误处理
-- 🏥 **健康检查** - 内置健康监控和自动重连机制
-- ⚡ **高性能** - 使用连接池和优化的查询策略
+- 🔍 **Real-time Monitoring** - Continuously monitors new token initialization events in the database
+- 📱 **Telegram Integration** - Automatically sends formatted notification messages to specified channels
+- 🐳 **Docker Support** - Complete containerized deployment solution
+- 🔧 **Flexible Configuration** - Easy configuration through environment variables
+- 📊 **Comprehensive Logging** - Detailed logging and error handling
+- 🏥 **Health Checks** - Built-in health monitoring and automatic reconnection mechanisms
+- ⚡ **High Performance** - Uses connection pooling and optimized query strategies
 
-## 项目结构
+## Project Structure
 
 ```
 telegram_news_bot2/
 ├── src/
 │   ├── services/
-│   │   ├── database.ts      # 数据库服务
-│   │   └── telegram.ts      # Telegram Bot服务
+│   │   ├── database.ts      # Database service
+│   │   └── telegram.ts      # Telegram Bot service
 │   ├── types/
-│   │   └── index.ts         # TypeScript类型定义
+│   │   └── index.ts         # TypeScript type definitions
 │   ├── utils/
-│   │   ├── config.ts        # 配置管理
-│   │   ├── logger.ts        # 日志工具
-│   │   ├── errorHandler.ts  # 错误处理
-│   │   └── health.ts        # 健康检查
-│   └── index.ts             # 主应用程序
-├── logs/                    # 日志文件目录
-├── Dockerfile              # Docker镜像配置
-├── docker-compose.yml      # Docker Compose配置
-├── package.json            # 项目依赖
-├── tsconfig.json           # TypeScript配置
-└── README.md               # 项目文档
+│   │   ├── config.ts        # Configuration management
+│   │   ├── logger.ts        # Logging utilities
+│   │   ├── errorHandler.ts  # Error handling
+│   │   └── health.ts        # Health checks
+│   └── index.ts             # Main application
+├── logs/                    # Log files directory
+├── Dockerfile              # Docker image configuration
+├── docker-compose.yml      # Docker Compose configuration
+├── package.json            # Project dependencies
+├── tsconfig.json           # TypeScript configuration
+└── README.md               # Project documentation
 ```
 
-## 快速开始
+## Quick Start
 
-### 环境准备
+### Prerequisites
 
 - Node.js 18+
-- PostgreSQL数据库
+- PostgreSQL database
 - Telegram Bot Token
 
-### 1. 克隆项目
+### 1. Clone the Project
 
 ```bash
 git clone <repository-url>
 cd telegram_news_bot2
 ```
 
-### 2. 安装依赖
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. 配置环境变量
+### 3. Configure Environment Variables
 
-复制环境变量模板并填写配置：
+Copy the environment variable template and fill in the configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-编辑 `.env` 文件，填写以下必要配置：
+Edit the `.env` file and fill in the following required configurations:
 
 ```env
-# 数据库配置
+# Database configuration
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=your_database_name
 DB_USER=your_username
 DB_PASSWORD=your_password
 
-# Telegram Bot配置
+# Telegram Bot configuration
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_IDS=your_chat_id_here
 ```
 
-### 4. 获取Telegram Bot Token
+### 4. Get Telegram Bot Token
 
-1. 在Telegram中找到 [@BotFather](https://t.me/botfather)
-2. 发送 `/newbot` 创建新机器人
-3. 按提示设置机器人名称和用户名
-4. 获取Bot Token并填入 `.env` 文件
+1. Find [@BotFather](https://t.me/botfather) in Telegram
+2. Send `/newbot` to create a new bot
+3. Follow the prompts to set the bot name and username
+4. Get the Bot Token and fill it into the `.env` file
 
-### 5. 获取Chat ID
+### 5. Get Chat ID
 
-#### 单个群组配置
-1. 将机器人添加到目标群组或频道
-2. 发送一条消息给机器人
-3. 访问 `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
-4. 从响应中找到 `chat.id` 并填入 `.env` 文件
+#### Single Group Configuration
+1. Add the bot to the target group or channel
+2. Send a message to the bot
+3. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+4. Find `chat.id` from the response and fill it into the `.env` file
 
-#### 多个群组配置
-如果需要向多个群组发送消息，可以配置多个Chat ID：
+#### Multiple Groups Configuration
+If you need to send messages to multiple groups, you can configure multiple Chat IDs:
 
-1. 对每个目标群组重复上述步骤，获取各自的Chat ID
-2. 在 `.env` 文件中使用逗号分隔多个Chat ID：
+1. Repeat the above steps for each target group to get their respective Chat IDs
+2. Use comma-separated multiple Chat IDs in the `.env` file:
    ```env
    TELEGRAM_CHAT_IDS=-1001234567890,-1009876543210,-1001122334455
    ```
-3. 机器人将自动向所有配置的群组发送消息
+3. The bot will automatically send messages to all configured groups
 
-**注意事项：**
-- Chat ID通常是负数（群组）或正数（私聊）
-- 确保机器人在所有目标群组中都有发送消息的权限
-- 如果某个群组发送失败，不会影响其他群组的消息发送
+**Notes:**
+- Chat IDs are usually negative numbers (groups) or positive numbers (private chats)
+- Ensure the bot has permission to send messages in all target groups
+- If sending to one group fails, it won't affect message sending to other groups
 
-## 运行方式
+## Running Methods
 
-### 开发模式
+### Development Mode
 
 ```bash
-# 编译并监听文件变化
+# Compile and watch for file changes
 npm run dev
 
-# 或者分别运行
+# Or run separately
 npm run build
 npm run watch
 ```
 
-### 生产模式
+### Production Mode
 
 ```bash
-# 编译项目
+# Compile the project
 npm run build
 
-# 启动应用
+# Start the application
 npm start
 ```
 
-### Docker部署
+### Docker Deployment
 
 ```bash
-# 构建并启动
+# Build and start
 docker-compose up -d
 
-# 查看日志
+# View logs
 docker-compose logs -f telegram-news-bot
 
-# 停止服务
+# Stop service
 docker-compose down
 ```
 
-## 监控的数据表
+## Monitored Database Table
 
-机器人监控名为 `initialize_token_event` 的数据表，包含以下字段：
+The bot monitors a data table named `initialize_token_event` containing the following fields:
 
-- `vid` - 唯一标识符（主键）
-- `mint` - 代币地址
-- `token_name` - 代币名称
-- `token_symbol` - 代币符号
-- `token_uri` - 代币URI
-- `created_at` - 创建时间
+- `vid` - Unique identifier (primary key)
+- `mint` - Token address
+- `token_name` - Token name
+- `token_symbol` - Token symbol
+- `token_uri` - Token URI
+- `created_at` - Creation time
 
-## 消息格式
+## Message Format
 
-机器人会发送格式化的消息，包含：
+The bot sends formatted messages containing:
 
 ```
-🚀 新代币初始化
+🚀 New Token Initialized!
 
-💰 代币名称: [Token Name]
-🔤 代币符号: [Symbol]
-📍 代币地址: [Mint Address]
-🔗 URI: [Token URI]
-⏰ 时间: [Timestamp]
+📊 Token Info:
+• Name: [Token Name]
+• Symbol: [Symbol]
+• Mint: [Mint Address]
+
+⛓️ Blockchain Info:
+• Block Height: [Block Height]
+• Transaction: [Transaction ID]
+• Timestamp: [Timestamp]
+• Fee Rate: [Fee Rate] SOL
+• Admin: [Admin Address]
+• Mint Size: [Mint Size]
+
+🔗 Links:
+[Social links if available]
 ```
 
-## 配置选项
+## Configuration Options
 
-| 环境变量 | 描述 | 默认值 |
-|---------|------|--------|
-| `DB_HOST` | 数据库主机 | localhost |
-| `DB_PORT` | 数据库端口 | 5432 |
-| `DB_NAME` | 数据库名称 | - |
-| `DB_USER` | 数据库用户 | - |
-| `DB_PASSWORD` | 数据库密码 | - |
+| Environment Variable | Description | Default Value |
+|---------------------|-------------|---------------|
+| `DB_HOST` | Database host | localhost |
+| `DB_PORT` | Database port | 5432 |
+| `DB_NAME` | Database name | - |
+| `DB_USER` | Database user | - |
+| `DB_PASSWORD` | Database password | - |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token | - |
-| `TELEGRAM_CHAT_IDS` | 目标聊天ID(多个用逗号分隔) | - |
-| `POLL_INTERVAL` | 轮询间隔(毫秒) | 30000 |
-| `LOG_LEVEL` | 日志级别 | info |
-| `NODE_ENV` | 运行环境 | development |
+| `TELEGRAM_CHAT_IDS` | Target chat IDs (comma-separated for multiple) | - |
+| `POLL_INTERVAL` | Polling interval (milliseconds) | 30000 |
+| `LOG_LEVEL` | Log level | info |
+| `NODE_ENV` | Runtime environment | development |
 
-## 日志
+## Logging
 
-日志文件保存在 `logs/` 目录下：
+Log files are saved in the `logs/` directory:
 
-- `app.log` - 应用日志
-- `error.log` - 错误日志
+- `app.log` - Application logs
+- `error.log` - Error logs
 
-日志级别：`error`, `warn`, `info`, `debug`
+Log levels: `error`, `warn`, `info`, `debug`
 
-## 健康检查
+## Health Checks
 
-应用包含内置健康检查功能：
+The application includes built-in health check functionality:
 
-- 数据库连接检查
-- Telegram Bot连接检查
-- 自动重连机制
-- 失败重试策略
+- Database connection check
+- Telegram Bot connection check
+- Automatic reconnection mechanism
+- Failure retry strategy
 
-## 错误处理
+## Error Handling
 
-- 自动重试机制
-- 详细错误日志
-- 优雅关闭处理
-- 连接断开自动恢复
+- Automatic retry mechanism
+- Detailed error logging
+- Graceful shutdown handling
+- Automatic recovery from connection drops
 
-## 开发信息
+## Development Information
 
-### 主要依赖
+### Main Dependencies
 
-- `pg` - PostgreSQL客户端
+- `pg` - PostgreSQL client
 - `node-telegram-bot-api` - Telegram Bot API
-- `winston` - 日志库
-- `dotenv` - 环境变量管理
+- `winston` - Logging library
+- `dotenv` - Environment variable management
 
-### 脚本命令
+### Script Commands
 
 ```bash
-npm run build    # 编译TypeScript
-npm run start    # 启动应用
-npm run dev      # 开发模式
-npm run watch    # 监听文件变化
+npm run build    # Compile TypeScript
+npm run start    # Start application
+npm run dev      # Development mode
+npm run watch    # Watch for file changes
 ```
 
-## 故障排除
+## Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **数据库连接失败**
-   - 检查数据库配置
-   - 确认数据库服务运行状态
-   - 验证网络连接
+1. **Database Connection Failed**
+   - Check database configuration
+   - Confirm database service is running
+   - Verify network connection
 
-2. **Telegram消息发送失败**
-   - 验证Bot Token正确性
-   - 确认Chat ID正确
-   - 检查机器人权限
+2. **Telegram Message Sending Failed**
+   - Verify Bot Token correctness
+   - Confirm Chat ID is correct
+   - Check bot permissions
 
-3. **找不到新记录**
-   - 确认表名和字段名配置
-   - 检查数据库权限
-   - 验证查询逻辑
+3. **No New Records Found**
+   - Confirm table name and field name configuration
+   - Check database permissions
+   - Verify query logic
 
-### 调试模式
+### Debug Mode
 
-设置环境变量启用详细日志：
+Set environment variable to enable detailed logging:
 
 ```bash
 LOG_LEVEL=debug npm run dev
 ```
 
-## 贡献
+## Contributing
 
-欢迎提交Issue和Pull Request来改进项目。
+Issues and Pull Requests are welcome to improve the project.
 
-## 许可证
+## License
 
 MIT License

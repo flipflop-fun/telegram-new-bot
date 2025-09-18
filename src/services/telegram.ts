@@ -27,12 +27,10 @@ export class TelegramService {
   }
 
   async sendNewTokenNotification(entity: InitializeTokenEventEntity): Promise<void> {
-    // 获取token元数据
     const metadata = entity.token_uri ? await this.fetchTokenMetadata(entity.token_uri) : null;
     
     const sendPromises = this.chatIds.map(async (chatId) => {
       try {
-        // 如果有图片，发送带图片的消息
         if (metadata?.image) {
           const caption = this.formatTokenMessage(entity, metadata);
           await this.bot.sendPhoto(chatId, metadata.image, {
@@ -40,7 +38,6 @@ export class TelegramService {
             parse_mode: 'HTML'
           });
         } else {
-          // 没有图片时发送普通文本消息
           const message = this.formatTokenMessage(entity, metadata);
           await this.bot.sendMessage(chatId, message, { 
             parse_mode: 'HTML',
@@ -78,7 +75,6 @@ export class TelegramService {
 
       const contentType = response.headers.get('content-type') || '';
       
-      // 如果是图片类型，直接返回包含图片URL的元数据
       if (contentType.startsWith('image/')) {
         logger.info(`Token URI is a direct image: ${tokenUri}`);
         return {
@@ -86,13 +82,11 @@ export class TelegramService {
         };
       }
 
-      // 尝试解析为JSON
       try {
         const metadata = await response.json() as TokenMetadata;
         logger.info(`Successfully fetched metadata for token: ${metadata.name || 'Unknown'}`);
         return metadata;
       } catch (jsonError) {
-        // 如果JSON解析失败，检查是否可能是图片
         logger.warn(`Failed to parse JSON from ${tokenUri}, treating as direct image URL`);
         return {
           image: tokenUri
@@ -105,7 +99,6 @@ export class TelegramService {
   }
 
   private formatTokenMessage(entity: InitializeTokenEventEntity, metadata?: TokenMetadata | null): string {
-    // 优先使用元数据中的信息，如果没有则使用实体中的信息
     const tokenName = metadata?.name || entity.token_name || 'Unknown';
     const tokenSymbol = metadata?.symbol || entity.token_symbol || 'N/A';
     const description = metadata?.description;
@@ -118,7 +111,6 @@ export class TelegramService {
 • Symbol: ${tokenSymbol}
 • Mint: <code>${entity.mint}</code>`;
 
-    // 如果有描述，添加描述
     if (description && description.trim()) {
       message += `\n• Description: ${description}`;
     }
@@ -131,7 +123,6 @@ export class TelegramService {
 • Admin: <code>${entity.admin}</code>
 • Mint Size: ${this.formatNumber(entity.mint_size_epoch / 1e9)}`;
 
-    // 添加社交链接
     if (metadata?.extensions) {
       const links = [];
       if (metadata.extensions.website) links.push(`🌐 <a href="${metadata.extensions.website}">Website</a>`);
@@ -146,7 +137,6 @@ export class TelegramService {
       }
     }
 
-    // 如果有token URI但没有获取到元数据，显示原始链接
     if (entity.token_uri && !metadata) {
       message += `\n\n🔗 Metadata: ${entity.token_uri}`;
     }
