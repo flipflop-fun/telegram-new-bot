@@ -7,7 +7,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "watch": "nodemon --exec ts-node src/index.ts"
+    "watch": "nodemon --exec ts-node src/index.ts",
+    "chatid": "node get-chat-id.js"
   },
   "keywords": ["telegram", "bot", "postgresql", "monitoring"],
   "author": "",

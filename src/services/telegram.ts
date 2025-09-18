@@ -2,6 +2,21 @@ import TelegramBot from 'node-telegram-bot-api';
 import { TelegramConfig, InitializeTokenEventEntity } from '../types';
 import { logger } from '../utils/logger';
 
+interface TokenMetadata {
+  name?: string;
+  symbol?: string;
+  description?: string;
+  image?: string;
+  extensions?: {
+    website?: string;
+    twitter?: string;
+    discord?: string;
+    telegram?: string;
+    github?: string;
+    medium?: string;
+  };
+}
+
 export class TelegramService {
   private bot: TelegramBot;
   private chatIds: string[];
@@ -12,13 +27,26 @@ export class TelegramService {
   }
 
   async sendNewTokenNotification(entity: InitializeTokenEventEntity): Promise<void> {
-    const message = this.formatTokenMessage(entity);
+    // 获取token元数据
+    const metadata = entity.token_uri ? await this.fetchTokenMetadata(entity.token_uri) : null;
+    
     const sendPromises = this.chatIds.map(async (chatId) => {
       try {
-        await this.bot.sendMessage(chatId, message, { 
-          parse_mode: 'HTML',
-          disable_web_page_preview: true 
-        });
+        // 如果有图片，发送带图片的消息
+        if (metadata?.image) {
+          const caption = this.formatTokenMessage(entity, metadata);
+          await this.bot.sendPhoto(chatId, metadata.image, {
+            caption,
+            parse_mode: 'HTML'
+          });
+        } else {
+          // 没有图片时发送普通文本消息
+          const message = this.formatTokenMessage(entity, metadata);
+          await this.bot.sendMessage(chatId, message, { 
+            parse_mode: 'HTML',
+            disable_web_page_preview: true 
+          });
+        }
         logger.info(`Sent notification to chat ${chatId} for token: ${entity.token_name || entity.token_symbol || entity.mint}`);
       } catch (error) {
         logger.error(`Failed to send message to chat ${chatId}:`, error);
@@ -35,66 +63,117 @@ export class TelegramService {
     }
   }
 
-  private formatTokenMessage(entity: InitializeTokenEventEntity): string {
-    const tokenName = entity.token_name || 'Unknown';
-    const tokenSymbol = entity.token_symbol || 'N/A';
+  private async fetchTokenMetadata(tokenUri: string): Promise<TokenMetadata | null> {
+    try {
+      if (!tokenUri) {
+        logger.warn('Token URI is empty');
+        return null;
+      }
+
+      const response = await fetch(tokenUri);
+      if (!response.ok) {
+        logger.warn(`Failed to fetch token metadata from ${tokenUri}: ${response.status}`);
+        return null;
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      
+      // 如果是图片类型，直接返回包含图片URL的元数据
+      if (contentType.startsWith('image/')) {
+        logger.info(`Token URI is a direct image: ${tokenUri}`);
+        return {
+          image: tokenUri
+        };
+      }
+
+      // 尝试解析为JSON
+      try {
+        const metadata = await response.json() as TokenMetadata;
+        logger.info(`Successfully fetched metadata for token: ${metadata.name || 'Unknown'}`);
+        return metadata;
+      } catch (jsonError) {
+        // 如果JSON解析失败，检查是否可能是图片
+        logger.warn(`Failed to parse JSON from ${tokenUri}, treating as direct image URL`);
+        return {
+          image: tokenUri
+        };
+      }
+    } catch (error) {
+      logger.error(`Error fetching token metadata from ${tokenUri}:`, error);
+      return null;
+    }
+  }
+
+  private formatTokenMessage(entity: InitializeTokenEventEntity, metadata?: TokenMetadata | null): string {
+    // 优先使用元数据中的信息，如果没有则使用实体中的信息
+    const tokenName = metadata?.name || entity.token_name || 'Unknown';
+    const tokenSymbol = metadata?.symbol || entity.token_symbol || 'N/A';
+    const description = metadata?.description;
     const timestamp = new Date(entity.timestamp * 1000).toLocaleString();
     
-    return `
-🚀 <b>New Token Initialized!</b>
+    let message = `🚀 <b>New Token Initialized!</b>
 
 📊 <b>Token Info:</b>
 • Name: ${tokenName}
 • Symbol: ${tokenSymbol}
-• Mint: <code>${entity.mint}</code>
-• Supply: ${this.formatNumber(entity.supply)}
+• Mint: <code>${entity.mint}</code>`;
 
-⛓️ <b>Blockchain Info:</b>
+    // 如果有描述，添加描述
+    if (description && description.trim()) {
+      message += `\n• Description: ${description}`;
+    }
+
+    message += `\n\n⛓️ <b>Blockchain Info:</b>
 • Block Height: ${entity.block_height}
 • Transaction: <code>${entity.tx_id}</code>
 • Timestamp: ${timestamp}
-
-💰 <b>Economics:</b>
-• Total Tokens: ${this.formatNumber(entity.total_tokens)}
-• Total Mint Fee: ${this.formatNumber(entity.total_mint_fee)}
-• Fee Rate: ${(entity.fee_rate * 100).toFixed(2)}%
-• Status: ${this.getStatusText(entity.status)}
-
-🔗 <b>Accounts:</b>
+• Fee Rate: ${(entity.fee_rate / 1e9).toFixed(2)} SOL
 • Admin: <code>${entity.admin}</code>
-• Config: <code>${entity.config_account}</code>
-• Token Vault: <code>${entity.token_vault}</code>
+• Mint Size: ${this.formatNumber(entity.mint_size_epoch / 1e9)}`;
 
-📈 <b>Current Epoch:</b>
-• Era: ${entity.current_era}
-• Epoch: ${entity.current_epoch}
-• Mint Size: ${this.formatNumber(entity.mint_size_epoch)}
-• Quantity Minted: ${this.formatNumber(entity.quantity_minted_epoch)}
+    // 添加社交链接
+    if (metadata?.extensions) {
+      const links = [];
+      if (metadata.extensions.website) links.push(`🌐 <a href="${metadata.extensions.website}">Website</a>`);
+      if (metadata.extensions.twitter) links.push(`🐦 <a href="${metadata.extensions.twitter}">Twitter</a>`);
+      if (metadata.extensions.telegram) links.push(`📱 <a href="${metadata.extensions.telegram}">Telegram</a>`);
+      if (metadata.extensions.discord) links.push(`💬 <a href="${metadata.extensions.discord}">Discord</a>`);
+      if (metadata.extensions.github) links.push(`💻 <a href="${metadata.extensions.github}">GitHub</a>`);
+      if (metadata.extensions.medium) links.push(`📝 <a href="${metadata.extensions.medium}">Medium</a>`);
+      
+      if (links.length > 0) {
+        message += `\n\n🔗 <b>Links:</b>\n${links.join('\n')}`;
+      }
+    }
 
-${entity.token_uri ? `🔗 Metadata: ${entity.token_uri}` : ''}
-    `.trim();
+    // 如果有token URI但没有获取到元数据，显示原始链接
+    if (entity.token_uri && !metadata) {
+      message += `\n\n🔗 Metadata: ${entity.token_uri}`;
+    }
+
+    return message.trim();
   }
 
   private formatNumber(num: number): string {
-    if (num >= 1e9) {
-      return (num / 1e9).toFixed(2) + 'B';
-    } else if (num >= 1e6) {
-      return (num / 1e6).toFixed(2) + 'M';
-    } else if (num >= 1e3) {
-      return (num / 1e3).toFixed(2) + 'K';
-    }
+    // if (num >= 1e9) {
+    //   return (num / 1e9).toFixed(2) + 'B';
+    // } else if (num >= 1e6) {
+    //   return (num / 1e6).toFixed(2) + 'M';
+    // } else if (num >= 1e3) {
+    //   return (num / 1e3).toFixed(2) + 'K';
+    // }
     return num.toLocaleString();
   }
 
-  private getStatusText(status: number): string {
-    switch (status) {
-      case 0: return '🟡 Initialized';
-      case 1: return '🟢 Active';
-      case 2: return '🔴 Paused';
-      case 3: return '⚫ Ended';
-      default: return `Unknown (${status})`;
-    }
-  }
+  // private getStatusText(status: number): string {
+  //   switch (status) {
+  //     case 0: return '🟡 Initialized';
+  //     case 1: return '🟢 Active';
+  //     case 2: return '🔴 Paused';
+  //     case 3: return '⚫ Ended';
+  //     default: return `Unknown (${status})`;
+  //   }
+  // }
 
   async testConnection(): Promise<boolean> {
     try {
